@@ -1,4 +1,4 @@
-{% load babybuddy i18n static %}
+{% load babybuddy i18n static timers %}
 {% get_current_language as LANGUAGE_CODE %}
 {% get_current_locale as LOCALE %}
 {% get_current_timezone as TIMEZONE %}
@@ -50,6 +50,9 @@
             </nav>
         {% endblock %}
         {% block page %}{% endblock %}
+        {% if user.is_authenticated %}
+            {% quick_entry_widget %}
+        {% endif %}
         <script src="{% static "babybuddy/js/vendor.js" %}"></script>
         <script src="{% static "babybuddy/js/app.js" %}"></script>
         {% if user.is_authenticated %}<script>BabyBuddy.PullToRefresh.init()</script>{% endif %}

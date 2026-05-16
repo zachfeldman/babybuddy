@@ -4,11 +4,11 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count
 from django.db.models.functions import Lower
 from django.forms import Form
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.views.generic.base import RedirectView, TemplateView
+from django.views.generic.base import RedirectView, TemplateView, View
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView, FormView
 
@@ -43,13 +43,24 @@ class CoreAddView(PermissionRequiredMixin, SuccessMessageMixin, CreateView):
           - "child" may provide a slug for a Child instance.
           - "timer" may provided an ID for a Timer instance.
 
-        These arguments are used in some add views to pre-fill initial data in
-        the form fields.
+        Additional parameters (start, end, time, type, method, wet, solid,
+        amount) are passed through for pre-filling from quick-entry redirects.
 
         :return: Updated keyword arguments.
         """
         kwargs = super(CoreAddView, self).get_form_kwargs()
-        for parameter in ["child", "timer"]:
+        for parameter in [
+            "child",
+            "timer",
+            "start",
+            "end",
+            "time",
+            "type",
+            "method",
+            "wet",
+            "solid",
+            "amount",
+        ]:
             value = self.request.GET.get(parameter, None)
             if value:
                 kwargs.update({parameter: value})
@@ -632,3 +643,14 @@ class WeightDelete(CoreDeleteView):
     model = models.Weight
     permission_required = ("core.delete_weight",)
     success_url = reverse_lazy("core:weight-list")
+
+
+class QuickEntryParse(LoginRequiredMixin, View):
+    def post(self, request):
+        from core.quick_entry import parse as qe_parse
+
+        text = request.POST.get("text", "").strip()
+        child_slug = request.POST.get("child", "").strip() or None
+        if not text:
+            return JsonResponse({"error": "No text provided."})
+        return JsonResponse(qe_parse(text, child_slug=child_slug))

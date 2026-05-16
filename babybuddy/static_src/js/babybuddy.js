@@ -66,3 +66,103 @@ BabyBuddy.RememberAdvancedToggle = function (ptr) {
     });
   });
 })();
+
+(function handleQuickEntry() {
+  function getCsrfToken() {
+    var match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : "";
+  }
+
+  function getParseUrl() {
+    var modal = document.getElementById("quick-entry-modal");
+    return modal ? modal.getAttribute("data-parse-url") : null;
+  }
+
+  function getChildSlug() {
+    var el = document.getElementById("quick-entry-child");
+    return el ? el.value : "";
+  }
+
+  function parse() {
+    var text = $("#quick-entry-text").val().trim();
+    if (!text) return;
+    var parseUrl = getParseUrl();
+    if (!parseUrl) return;
+
+    $("#quick-entry-preview").addClass("d-none");
+    $("#quick-entry-error").addClass("d-none");
+    var $btn = $("#quick-entry-parse-btn");
+    $btn.prop("disabled", true).text("Parsing…");
+
+    $.ajax({
+      url: parseUrl,
+      method: "POST",
+      headers: { "X-CSRFToken": getCsrfToken() },
+      data: { text: text, child: getChildSlug() },
+      success: function (data) {
+        if (data.error) {
+          $("#quick-entry-error").text(data.error).removeClass("d-none");
+        } else {
+          $("#quick-entry-preview-text").text(data.preview);
+          $("#quick-entry-open-form").attr("href", data.redirect_url);
+          $("#quick-entry-preview").removeClass("d-none");
+        }
+      },
+      error: function () {
+        $("#quick-entry-error")
+          .text("An error occurred. Please try again.")
+          .removeClass("d-none");
+      },
+      complete: function () {
+        $btn.prop("disabled", false).text("Parse");
+      },
+    });
+  }
+
+  $(document).on("click", "#quick-entry-parse-btn", parse);
+
+  $(document).on("keydown", "#quick-entry-text", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      parse();
+    }
+  });
+
+  $(document).on("show.bs.modal", "#quick-entry-modal", function () {
+    $("#quick-entry-text").val("");
+    $("#quick-entry-preview").addClass("d-none");
+    $("#quick-entry-error").addClass("d-none");
+  });
+
+  $(document).on("shown.bs.modal", "#quick-entry-modal", function () {
+    $("#quick-entry-text").trigger("focus");
+  });
+
+  window.addEventListener("load", function () {
+    var SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    var recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = function (event) {
+      $("#quick-entry-text").val(event.results[0][0].transcript);
+      parse();
+    };
+
+    recognition.onend = function () {
+      $("#quick-entry-mic")
+        .removeClass("btn-danger")
+        .addClass("btn-outline-secondary");
+    };
+
+    $("#quick-entry-mic").removeClass("d-none");
+
+    $(document).on("click", "#quick-entry-mic", function () {
+      recognition.start();
+      $(this).removeClass("btn-outline-secondary").addClass("btn-danger");
+    });
+  });
+})();

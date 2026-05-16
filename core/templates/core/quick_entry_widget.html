@@ -1,0 +1,61 @@
+{% load i18n %}
+{% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
+    <div class="modal fade"
+         id="quick-entry-modal"
+         tabindex="-1"
+         aria-labelledby="quick-entry-modal-label"
+         aria-hidden="true"
+         data-parse-url="{{ parse_url }}">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="quick-entry-modal-label">{% trans "Quick Entry" %}</h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="{% trans "Close" %}"></button>
+                </div>
+                <div class="modal-body">
+                    {% if children.count > 1 %}
+                        <div class="mb-3">
+                            <select class="form-select"
+                                    id="quick-entry-child"
+                                    aria-label="{% trans "Child" %}">
+                                {% for child in children %}<option value="{{ child.slug }}">{{ child.first_name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    {% elif children.count == 1 %}
+                        <input type="hidden"
+                               id="quick-entry-child"
+                               value="{{ children.first.slug }}">
+                    {% endif %}
+                    <div class="input-group mb-3">
+                        <input type="text"
+                               class="form-control"
+                               id="quick-entry-text"
+                               placeholder="{% trans "e.g. nursed left 15 min" %}"
+                               aria-label="{% trans "Entry description" %}"
+                               autocomplete="off">
+                        <button class="btn btn-outline-secondary d-none"
+                                id="quick-entry-mic"
+                                type="button"
+                                aria-label="{% trans "Dictate" %}">
+                            <i class="icon-record" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn btn-primary" id="quick-entry-parse-btn" type="button">{% trans "Parse" %}</button>
+                    </div>
+                    <div id="quick-entry-preview" class="d-none">
+                        <div class="alert alert-info mb-2">
+                            <p class="mb-2" id="quick-entry-preview-text"></p>
+                            <a id="quick-entry-open-form" href="#" class="btn btn-success btn-sm">{% trans "Open form" %} &rarr;</a>
+                        </div>
+                    </div>
+                    <div id="quick-entry-error" class="alert alert-warning d-none"></div>
+                    <p class="text-muted small mb-0 mt-2">
+                        {% trans "Try: 'nursed left 15 min', 'wet diaper', 'bottle formula 3 oz', 'nap 2 hours'" %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}

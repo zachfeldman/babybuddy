@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime as _datetime
+
 from django import forms
 from django.forms import widgets
 from django.conf import settings
@@ -52,7 +54,40 @@ def set_initial_values(kwargs, form_type):
         except Timer.DoesNotExist:
             pass
 
-    # Set type and method values for Feeding instance based on last feed.
+    # Handle datetime fields passed as ISO strings (e.g. from quick-entry redirect).
+    for field in ["start", "end", "time"]:
+        value = kwargs.get(field)
+        if value:
+            try:
+                dt = _datetime.fromisoformat(value)
+                if timezone.is_naive(dt):
+                    dt = timezone.make_aware(dt)
+                kwargs["initial"].update({field: dt})
+            except (ValueError, TypeError):
+                pass
+
+    # Handle string fields.
+    for field in ["type", "method"]:
+        value = kwargs.get(field)
+        if value:
+            kwargs["initial"].update({field: value})
+
+    # Handle boolean fields.
+    for field in ["wet", "solid"]:
+        value = kwargs.get(field)
+        if value is not None:
+            kwargs["initial"].update({field: value.lower() in ("true", "1", "yes")})
+
+    # Handle numeric fields.
+    amount = kwargs.get("amount")
+    if amount is not None:
+        try:
+            kwargs["initial"].update({"amount": float(amount)})
+        except (ValueError, TypeError):
+            pass
+
+    # Set type and method values for Feeding instance based on last feed,
+    # but do not override values already set (e.g. from quick-entry redirect).
     if form_type == FeedingForm and "child" in kwargs["initial"]:
         last_feeding = (
             models.Feeding.objects.filter(child=kwargs["initial"]["child"])
@@ -61,10 +96,16 @@ def set_initial_values(kwargs, form_type):
         )
         if last_feeding:
             last_method = last_feeding.method
-            last_feed_args = {"type": last_feeding.type}
-            if last_method not in ["left breast", "right breast"]:
+            last_feed_args = {}
+            if "type" not in kwargs["initial"]:
+                last_feed_args["type"] = last_feeding.type
+            if "method" not in kwargs["initial"] and last_method not in [
+                "left breast",
+                "right breast",
+            ]:
                 last_feed_args["method"] = last_method
-            kwargs["initial"].update(last_feed_args)
+            if last_feed_args:
+                kwargs["initial"].update(last_feed_args)
 
     # Set default "nap" value for Sleep instances.
     if form_type == SleepForm and "nap" not in kwargs["initial"]:
@@ -80,7 +121,18 @@ def set_initial_values(kwargs, form_type):
         kwargs["initial"].update({"nap": nap})
 
     # Remove custom kwargs, so they do not interfere with `super` calls.
-    for key in ["child", "timer"]:
+    for key in [
+        "child",
+        "timer",
+        "start",
+        "end",
+        "time",
+        "type",
+        "method",
+        "wet",
+        "solid",
+        "amount",
+    ]:
         try:
             kwargs.pop(key)
         except KeyError:

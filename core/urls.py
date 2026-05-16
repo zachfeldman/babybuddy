@@ -139,4 +139,9 @@ urlpatterns = [
     path("bmi/add/", views.BMIAdd.as_view(), name="bmi-add"),
     path("bmi/<int:pk>/", views.BMIUpdate.as_view(), name="bmi-update"),
     path("bmi/<int:pk>/delete/", views.BMIDelete.as_view(), name="bmi-delete"),
+    path(
+        "quick-entry/parse/",
+        views.QuickEntryParse.as_view(),
+        name="quick-entry-parse",
+    ),
 ]
