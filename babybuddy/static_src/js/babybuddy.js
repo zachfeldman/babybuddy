@@ -69,8 +69,8 @@ BabyBuddy.RememberAdvancedToggle = function (ptr) {
 
 (function handleQuickEntry() {
   function getCsrfToken() {
-    var match = document.cookie.match(/csrftoken=([^;]+)/);
-    return match ? match[1] : "";
+    var el = document.querySelector("[name=csrfmiddlewaretoken]");
+    return el ? el.value : "";
   }
 
   function getParseUrl() {

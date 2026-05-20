@@ -38,7 +38,7 @@ def _call_claude(text, now_str):
         "duration_minutes (number or null)\n"
         '- "diaper": wet (bool), solid (bool), notes (string or null)\n'
         '- "sleep": duration_minutes (number or null)\n\n'
-        f'Current local time is {now_str}. '
+        f"Current local time is {now_str}. "
         "If the text mentions a specific time (e.g. 'at 3pm', 'starting at 10:30'), "
         "include start_time as HH:MM (24h) in the JSON.\n\n"
         'If the text cannot be understood as a baby event, return {"error": "brief explanation"}.'
@@ -71,7 +71,9 @@ def parse(text, child_slug=None, now=None):
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
-        return {"error": "No Anthropic API key configured. Add ANTHROPIC_API_KEY in the addon settings."}
+        return {
+            "error": "No Anthropic API key configured. Add ANTHROPIC_API_KEY in the addon settings."
+        }
 
     try:
         data = _call_claude(text.strip(), now.strftime("%H:%M"))

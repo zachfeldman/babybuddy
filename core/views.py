@@ -8,8 +8,6 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import RedirectView, TemplateView, View
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView, FormView
@@ -647,7 +645,6 @@ class WeightDelete(CoreDeleteView):
     success_url = reverse_lazy("core:weight-list")
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class QuickEntryParse(LoginRequiredMixin, View):
     def post(self, request):
         text = request.POST.get("text", "").strip()
