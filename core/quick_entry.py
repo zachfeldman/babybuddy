@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import re
+import json
+import os
 from datetime import timedelta
 from urllib.parse import urlencode
 
@@ -7,19 +8,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 
-def _parse_duration(text):
-    """Return total minutes from text, or None if no duration found."""
-    total = 0.0
-    found = False
-    hour_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:hour|hr)s?", text)
-    if hour_match:
-        total += float(hour_match.group(1)) * 60
-        found = True
-    min_match = re.search(r"(\d+)\s*min(?:ute)?s?", text)
-    if min_match:
-        total += int(min_match.group(1))
-        found = True
-    return int(total) if found else None
+def _build_redirect_url(url_name, params):
+    url = reverse(url_name)
+    if params:
+        url += "?" + urlencode(params)
+    return url
 
 
 def _format_duration(minutes):
@@ -30,47 +23,99 @@ def _format_duration(minutes):
     return f"{minutes}m"
 
 
-def _build_redirect_url(url_name, params):
-    url = reverse(url_name)
-    if params:
-        url += "?" + urlencode(params)
-    return url
+def _call_claude(text, now_str):
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    system = (
+        "You are a baby tracking assistant. Parse natural language text describing a baby event "
+        "into structured JSON. Return ONLY a raw JSON object — no markdown, no code fences, no explanation.\n\n"
+        "The JSON must include an 'entry_type' field set to one of: 'feeding', 'diaper', 'sleep'.\n\n"
+        "Fields per entry_type:\n"
+        '- "feeding": feed_type ("formula"|"breast milk"|"fortified breast milk"), '
+        'method ("bottle"|"left breast"|"right breast"|"both breasts"), '
+        "amount_ml (number in ml, convert oz*29.57 if needed, or null), "
+        "duration_minutes (number or null)\n"
+        '- "diaper": wet (bool), solid (bool), notes (string or null)\n'
+        '- "sleep": duration_minutes (number or null)\n\n'
+        f'Current local time is {now_str}. '
+        "If the text mentions a specific time (e.g. 'at 3pm', 'starting at 10:30'), "
+        "include start_time as HH:MM (24h) in the JSON.\n\n"
+        'If the text cannot be understood as a baby event, return {"error": "brief explanation"}.'
+    )
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=512,
+        messages=[{"role": "user", "content": text}],
+        system=system,
+    )
+    raw = response.content[0].text.strip() if response.content else ""
+    # Strip markdown code fences if the model added them despite instructions
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        raise ValueError(f"Model returned non-JSON: {raw!r}")
 
 
-def _parse_feeding(text, child_slug, now):
-    is_breast = bool(re.search(r"nurs|breastfe|breast[\s-]?fed|breast[\s-]?feed", text))
-    is_bottle = bool(re.search(r"bottle|formula", text))
+def parse(text, child_slug=None, now=None):
+    """
+    Parse natural language text into a BabyBuddy entry using the Claude API.
 
-    if not is_breast and not is_bottle:
-        return None
+    Returns a dict with entry_type, preview, and redirect_url on success,
+    or {"error": "..."} if the text could not be understood.
+    """
+    if now is None:
+        now = timezone.localtime()
 
-    if is_bottle:
-        feed_type = "formula" if re.search(r"formula", text) else "breast milk"
-        amount = None
-        amount_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:oz|ounce|ml)", text)
-        if amount_match:
-            amount = float(amount_match.group(1))
-        duration_mins = _parse_duration(text)
-        start = (now - timedelta(minutes=duration_mins)) if duration_mins else now
-        end = now
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        return {"error": "No Anthropic API key configured. Add ANTHROPIC_API_KEY in the addon settings."}
+
+    try:
+        data = _call_claude(text.strip(), now.strftime("%H:%M"))
+    except Exception as e:
+        return {"error": f"AI parsing failed: {e}"}
+
+    if "error" in data:
+        return {"error": data["error"]}
+
+    entry_type = data.get("entry_type")
+
+    if entry_type == "feeding":
+        feed_type = data.get("feed_type", "breast milk")
+        method = data.get("method", "both breasts")
+        amount_ml = data.get("amount_ml")
+        duration_mins = data.get("duration_minutes")
+
+        if "start_time" in data:
+            h, m = map(int, data["start_time"].split(":"))
+            start = now.replace(hour=h, minute=m, second=0, microsecond=0)
+            end = start + timedelta(minutes=duration_mins) if duration_mins else now
+        elif duration_mins:
+            end = now
+            start = now - timedelta(minutes=duration_mins)
+        else:
+            start = end = now
 
         params = {
             "type": feed_type,
-            "method": "bottle",
+            "method": method,
             "start": start.isoformat(),
             "end": end.isoformat(),
         }
-        if amount is not None:
-            params["amount"] = str(amount)
+        if amount_ml is not None:
+            params["amount"] = str(round(amount_ml, 1))
         if child_slug:
             params["child"] = child_slug
 
-        preview = f"Bottle ({feed_type})"
-        if amount is not None:
-            preview += f", {amount} oz"
+        preview = f"Feeding ({method}, {feed_type})"
+        if amount_ml is not None:
+            preview += f", {round(amount_ml)}ml"
         if duration_mins:
             preview += f", {_format_duration(duration_mins)}"
-        preview += f", ending {now.strftime('%-I:%M %p')}"
+        preview += f", ending {end.strftime('%-I:%M %p')}"
 
         return {
             "entry_type": "feeding",
@@ -78,124 +123,60 @@ def _parse_feeding(text, child_slug, now):
             "redirect_url": _build_redirect_url("core:feeding-add", params),
         }
 
-    # Breast feeding — detect side
-    if re.search(r"\bleft\b", text):
-        method = "left breast"
-    elif re.search(r"\bright\b", text):
-        method = "right breast"
-    else:
-        method = "both breasts"
+    if entry_type == "diaper":
+        wet = bool(data.get("wet", False))
+        solid = bool(data.get("solid", False))
+        notes = data.get("notes") or ""
 
-    duration_mins = _parse_duration(text)
-    start = (now - timedelta(minutes=duration_mins)) if duration_mins else now
-    end = now
+        if not wet and not solid:
+            wet = True
 
-    params = {
-        "type": "breast milk",
-        "method": method,
-        "start": start.isoformat(),
-        "end": end.isoformat(),
-    }
-    if child_slug:
-        params["child"] = child_slug
-
-    preview = f"Feeding ({method})"
-    if duration_mins:
-        preview += f", {_format_duration(duration_mins)}"
-    preview += f", ending {now.strftime('%-I:%M %p')}"
-
-    return {
-        "entry_type": "feeding",
-        "preview": preview,
-        "redirect_url": _build_redirect_url("core:feeding-add", params),
-    }
-
-
-def _parse_diaper(text, child_slug, now):
-    if not re.search(r"diaper|nappy|wet|dirty|poop|pee|soil|bm\b|bowel|change", text):
-        return None
-
-    wet = bool(re.search(r"wet|pee|urine", text))
-    solid = bool(re.search(r"dirty|poop|solid|soil|bm\b|bowel", text))
-
-    if re.search(r"both|wet.{0,5}dirty|dirty.{0,5}wet", text):
-        wet = True
-        solid = True
-
-    # Plain "diaper change" with no qualifier defaults to wet
-    if not wet and not solid:
-        wet = True
-
-    params = {
-        "time": now.isoformat(),
-        "wet": "true" if wet else "false",
-        "solid": "true" if solid else "false",
-    }
-    if child_slug:
-        params["child"] = child_slug
-
-    contents = []
-    if wet:
-        contents.append("wet")
-    if solid:
-        contents.append("dirty")
-    preview = f"Diaper change ({' & '.join(contents)}) at {now.strftime('%-I:%M %p')}"
-
-    return {
-        "entry_type": "diaperchange",
-        "preview": preview,
-        "redirect_url": _build_redirect_url("core:diaperchange-add", params),
-    }
-
-
-def _parse_sleep(text, child_slug, now):
-    if not re.search(r"sleep|slept|nap", text):
-        return None
-
-    duration_mins = _parse_duration(text)
-    start = (now - timedelta(minutes=duration_mins)) if duration_mins else now
-    end = now
-
-    params = {
-        "start": start.isoformat(),
-        "end": end.isoformat(),
-    }
-    if child_slug:
-        params["child"] = child_slug
-
-    preview = "Nap" if re.search(r"nap", text) else "Sleep"
-    if duration_mins:
-        preview += f", {_format_duration(duration_mins)}"
-    preview += f", ending {now.strftime('%-I:%M %p')}"
-
-    return {
-        "entry_type": "sleep",
-        "preview": preview,
-        "redirect_url": _build_redirect_url("core:sleep-add", params),
-    }
-
-
-def parse(text, child_slug=None, now=None):
-    """
-    Parse natural language text into a BabyBuddy entry.
-
-    Returns a dict with entry_type, preview, and redirect_url on success,
-    or {"error": "..."} if the text could not be understood.
-    """
-    if now is None:
-        now = timezone.localtime()
-    normalized = text.strip().lower()
-    result = (
-        _parse_feeding(normalized, child_slug, now)
-        or _parse_diaper(normalized, child_slug, now)
-        or _parse_sleep(normalized, child_slug, now)
-    )
-    if not result:
-        return {
-            "error": (
-                "Could not understand that. Try: "
-                "‘nursed left 15 min’, ‘wet diaper’, "
-                "‘bottle formula 3 oz’, ‘nap 2 hours’."
-            )
+        params = {
+            "time": now.isoformat(),
+            "wet": "true" if wet else "false",
+            "solid": "true" if solid else "false",
         }
-    return result
+        if notes:
+            params["notes"] = notes
+        if child_slug:
+            params["child"] = child_slug
+
+        contents = []
+        if wet:
+            contents.append("wet")
+        if solid:
+            contents.append("dirty")
+        preview = f"Diaper ({' & '.join(contents)}) at {now.strftime('%-I:%M %p')}"
+        if notes:
+            preview += f" — {notes}"
+
+        return {
+            "entry_type": "diaperchange",
+            "preview": preview,
+            "redirect_url": _build_redirect_url("core:diaperchange-add", params),
+        }
+
+    if entry_type == "sleep":
+        duration_mins = data.get("duration_minutes")
+        end = now
+        start = (now - timedelta(minutes=duration_mins)) if duration_mins else now
+
+        params = {
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+        }
+        if child_slug:
+            params["child"] = child_slug
+
+        preview = "Sleep"
+        if duration_mins:
+            preview += f", {_format_duration(duration_mins)}"
+        preview += f", ending {end.strftime('%-I:%M %p')}"
+
+        return {
+            "entry_type": "sleep",
+            "preview": preview,
+            "redirect_url": _build_redirect_url("core:sleep-add", params),
+        }
+
+    return {"error": "Could not determine entry type from text."}

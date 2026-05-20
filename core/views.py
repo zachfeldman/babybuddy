@@ -647,10 +647,13 @@ class WeightDelete(CoreDeleteView):
 
 class QuickEntryParse(LoginRequiredMixin, View):
     def post(self, request):
-        from core.quick_entry import parse as qe_parse
-
         text = request.POST.get("text", "").strip()
         child_slug = request.POST.get("child", "").strip() or None
         if not text:
             return JsonResponse({"error": "No text provided."})
-        return JsonResponse(qe_parse(text, child_slug=child_slug))
+        try:
+            from core.quick_entry import parse as qe_parse
+
+            return JsonResponse(qe_parse(text, child_slug=child_slug))
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)

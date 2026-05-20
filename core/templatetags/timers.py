@@ -43,9 +43,20 @@ def instance_add_url(context, url_name):
     return url
 
 
+@register.simple_tag
+def quick_entry_enabled():
+    import os
+
+    return bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
+
+
 @register.inclusion_tag("core/quick_entry_widget.html", takes_context=True)
 def quick_entry_widget(context):
+    import os
+
+    if not os.environ.get("ANTHROPIC_API_KEY", "").strip():
+        return {"has_api_key": False}
     children = Child.objects.all()
     perms = context.get("perms")
     parse_url = reverse("core:quick-entry-parse")
-    return {"children": children, "perms": perms, "parse_url": parse_url}
+    return {"children": children, "perms": perms, "parse_url": parse_url, "has_api_key": True}

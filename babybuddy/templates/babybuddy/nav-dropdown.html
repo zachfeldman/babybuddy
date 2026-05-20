@@ -42,7 +42,8 @@
 </a>
 <div class="dropdown-menu dropdown-menu-end"
      aria-labelledby="nav-quick-add-link">
-    {% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
+    {% quick_entry_enabled as quick_entry_enabled %}
+    {% if quick_entry_enabled %}{% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
         <a class="dropdown-item p-2"
            href="#"
            data-bs-toggle="modal"
@@ -51,7 +52,7 @@
             {% trans "Quick Entry" %}
         </a>
         <div class="dropdown-divider"></div>
-    {% endif %}
+    {% endif %}{% endif %}
     {% if perms.core.add_diaperchange %}
         <a class="dropdown-item p-2" href="{% url 'core:diaperchange-add' %}">
             <i class="icon-diaperchange" aria-hidden="true"></i>
@@ -239,17 +240,6 @@
 {% endif %}
 </div>
 </li>
-{% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
-    <li class="nav-item">
-        <a class="nav-link"
-           href="#"
-           data-bs-toggle="modal"
-           data-bs-target="#quick-entry-modal">
-            <i class="icon-note" aria-hidden="true"></i>
-            {% trans "Quick Entry" %}
-        </a>
-    </li>
-{% endif %}
 <li class="nav-item dropdown">
 <a id="nav-activity-menu-link"
    class="nav-link dropdown-toggle"
@@ -260,6 +250,16 @@
 {% trans "Activities" %}
 </a>
 <div class="dropdown-menu" aria-labelledby="nav-activity-menu-link">
+    {% if quick_entry_enabled %}{% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
+        <a class="dropdown-item p-2"
+           href="#"
+           data-bs-toggle="modal"
+           data-bs-target="#quick-entry-modal">
+            <i class="icon-note" aria-hidden="true"></i>
+            {% trans "Quick Entry" %}
+        </a>
+        <div class="dropdown-divider"></div>
+    {% endif %}{% endif %}
     {% if perms.core.view_diaperchange %}
     <a class="dropdown-item{% if request.path == '/changes/' %} active{% endif %}"
        href="{% url 'core:diaperchange-list' %}"><i class="icon-diaperchange" aria-hidden="true"></i>
