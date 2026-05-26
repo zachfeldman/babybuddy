@@ -59,4 +59,9 @@ def quick_entry_widget(context):
     children = Child.objects.all()
     perms = context.get("perms")
     parse_url = reverse("core:quick-entry-parse")
-    return {"children": children, "perms": perms, "parse_url": parse_url, "has_api_key": True}
+    return {
+        "children": children,
+        "perms": perms,
+        "parse_url": parse_url,
+        "has_api_key": True,
+    }
