@@ -42,7 +42,7 @@ BabyBuddy.PullToRefresh = (function (ptr) {
     var submitter =
       (event.originalEvent && event.originalEvent.submitter) ||
       $(this).find('[type="submit"]')[0];
-    if (!submitter || $(submitter).find(".spinner-border").length) return;
+    if (!submitter || $(submitter).prop("disabled")) return;
     $(submitter)
       .prop("disabled", true)
       .prepend(
@@ -136,33 +136,5 @@ BabyBuddy.RememberAdvancedToggle = function (ptr) {
 
   $(document).on("shown.bs.modal", "#quick-entry-modal", function () {
     $("#quick-entry-text").trigger("focus");
-  });
-
-  window.addEventListener("load", function () {
-    var SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    var recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onresult = function (event) {
-      $("#quick-entry-text").val(event.results[0][0].transcript);
-      parse();
-    };
-
-    recognition.onend = function () {
-      $("#quick-entry-mic")
-        .removeClass("btn-danger")
-        .addClass("btn-outline-secondary");
-    };
-
-    $("#quick-entry-mic").removeClass("d-none");
-
-    $(document).on("click", "#quick-entry-mic", function () {
-      recognition.start();
-      $(this).removeClass("btn-outline-secondary").addClass("btn-danger");
-    });
   });
 })();
