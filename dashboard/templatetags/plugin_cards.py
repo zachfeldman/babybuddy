@@ -32,9 +32,12 @@ def plugin_cards(context, child):
 
         template_name = f"{plugin.label}/cards/summary.html"
         try:
+            hide_empty = (
+                request.user.settings.dashboard_hide_empty if request else False
+            )
             html = render_to_string(
                 template_name,
-                {"child": child, "request": request},
+                {"child": child, "request": request, "hide_empty": hide_empty},
                 request=request,
             )
             rendered.append(
