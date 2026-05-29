@@ -66,6 +66,12 @@ def set_initial_values(kwargs, form_type):
                 last_feed_args["method"] = last_method
             kwargs["initial"].update(last_feed_args)
 
+    # Set default weight_unit for weight forms.
+    if form_type == WeightForm and "weight_unit" not in kwargs["initial"]:
+        from core.units import get_default_unit
+
+        kwargs["initial"]["weight_unit"] = get_default_unit("weight")
+
     # Set default amount_unit for volume-based forms.
     if form_type in (FeedingForm, PumpingForm) and "amount_unit" not in kwargs["initial"]:
         from core.units import get_default_unit
@@ -513,7 +519,7 @@ class TummyTimeForm(CoreModelForm, TaggableModelForm):
 class WeightForm(CoreModelForm, TaggableModelForm):
     fieldsets = [
         {
-            "fields": ["child", "weight", "date"],
+            "fields": ["child", "weight", "weight_unit", "date"],
             "layout": "required",
         },
         {"fields": ["notes", "tags"], "layout": "advanced"},
@@ -521,9 +527,10 @@ class WeightForm(CoreModelForm, TaggableModelForm):
 
     class Meta:
         model = models.Weight
-        fields = ["child", "weight", "date", "notes", "tags"]
+        fields = ["child", "weight", "weight_unit", "date", "notes", "tags"]
         widgets = {
             "child": ChildRadioSelect,
+            "weight_unit": PillRadioSelect(),
             "date": DateInput(),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }

@@ -317,7 +317,7 @@ class TemplateTagsTestCase(TestCase):
                 "stat": timezone.timedelta(0, 18000),
                 "type": "duration",
             },
-            {"title": "Weight change per week", "stat": 1.0, "type": "float"},
+            {"title": "Weight change per week", "stat": 1.0, "type": "float", "unit": ""},
             {"title": "Height change per week", "stat": 1.0, "type": "float"},
             {
                 "title": "Head circumference change per week",

@@ -18,7 +18,7 @@
                                         {% if stat.type == 'duration' %}
                                             {{ stat.stat|duration_string:'m' }}
                                         {% elif stat.type == 'float' %}
-                                            {{ stat.stat|floatformat }}
+                                            {{ stat.stat|floatformat }}{% if stat.unit %} {{ stat.unit }}{% endif %}
                                         {% else %}
                                             {{ stat.stat }}
                                         {% endif %}

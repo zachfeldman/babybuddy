@@ -16,7 +16,7 @@ from taggit.managers import TaggableManager as TaggitTaggableManager
 from taggit.models import GenericTaggedItemBase, TagBase
 
 from babybuddy.site_settings import NapSettings
-from core.units import VOLUME_UNIT_CHOICES
+from core.units import VOLUME_UNIT_CHOICES, WEIGHT_UNIT_CHOICES
 from core.utils import random_color, timezone_aware_duration
 
 
@@ -757,6 +757,13 @@ class Weight(models.Model):
         verbose_name=_("Child"),
     )
     weight = models.FloatField(blank=False, null=False, verbose_name=_("Weight"))
+    weight_unit = models.CharField(
+        blank=True,
+        choices=WEIGHT_UNIT_CHOICES,
+        default="",
+        max_length=10,
+        verbose_name=_("Weight unit"),
+    )
     date = models.DateField(
         blank=False, default=timezone.localdate, null=False, verbose_name=_("Date")
     )

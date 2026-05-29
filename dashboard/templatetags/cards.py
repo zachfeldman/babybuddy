@@ -8,7 +8,13 @@ from django.utils.translation import gettext as _
 import collections
 
 from core import models
-from core.units import VOLUME_UNIT_CHOICES, convert_volume, get_default_unit
+from core.units import (
+    VOLUME_UNIT_CHOICES,
+    WEIGHT_UNIT_CHOICES,
+    convert_volume,
+    convert_weight,
+    get_default_unit,
+)
 
 register = template.Library()
 
@@ -543,6 +549,7 @@ def card_statistics(context, child):
             {
                 "type": "float",
                 "stat": weight["change_weekly"],
+                "unit": weight["unit"],
                 "title": _("Weight change per week"),
             }
         )
@@ -747,19 +754,31 @@ def _weight_statistics(child):
     :param child: an instance of the Child model.
     :returns: a dictionary of statistics.
     """
-    weight = {"change_weekly": 0.0}
+    weight = {"change_weekly": 0.0, "unit": ""}
 
     instances = models.Weight.objects.filter(child=child).order_by("-date")
     if len(instances) == 0:
         return False
 
+    default_unit = get_default_unit("weight")
+    has_units = any(i.weight_unit for i in instances)
+
+    def to_default(instance):
+        w = instance.weight
+        if instance.weight_unit and instance.weight_unit != default_unit:
+            w = convert_weight(w, instance.weight_unit, default_unit)
+        return w
+
     newest = instances.first()
     oldest = instances.last()
 
     if newest != oldest:
-        weight_change = newest.weight - oldest.weight
+        weight_change = to_default(newest) - to_default(oldest)
         weeks = (newest.date - oldest.date).days / 7
         weight["change_weekly"] = weight_change / weeks
+
+    if has_units:
+        weight["unit"] = dict(WEIGHT_UNIT_CHOICES).get(default_unit, "")
 
     return weight
 
