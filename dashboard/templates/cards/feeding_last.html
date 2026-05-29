@@ -18,6 +18,6 @@
 {% block content %}
     {% if feeding %}
         {{ feeding.get_type_display }}, {{ feeding.get_method_display }}
-        {% if feeding.amount %}({{ feeding.amount }}){% endif %}
+        {% if feeding.amount %}({{ feeding.amount }}{% if feeding.amount_unit %} {{ feeding.get_amount_unit_display }}{% endif %}){% endif %}
     {% endif %}
 {% endblock %}

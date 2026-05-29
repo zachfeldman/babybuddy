@@ -16,6 +16,7 @@ from taggit.managers import TaggableManager as TaggitTaggableManager
 from taggit.models import GenericTaggedItemBase, TagBase
 
 from babybuddy.site_settings import NapSettings
+from core.units import VOLUME_UNIT_CHOICES
 from core.utils import random_color, timezone_aware_duration
 
 
@@ -342,6 +343,13 @@ class Feeding(models.Model):
         verbose_name=_("Method"),
     )
     amount = models.FloatField(blank=True, null=True, verbose_name=_("Amount"))
+    amount_unit = models.CharField(
+        blank=True,
+        choices=VOLUME_UNIT_CHOICES,
+        default="",
+        max_length=10,
+        verbose_name=_("Amount unit"),
+    )
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     tags = TaggableManager(blank=True, through=Tagged)
 
@@ -506,6 +514,13 @@ class Pumping(models.Model):
         verbose_name=_("Duration"),
     )
     amount = models.FloatField(blank=False, null=False, verbose_name=_("Amount"))
+    amount_unit = models.CharField(
+        blank=True,
+        choices=VOLUME_UNIT_CHOICES,
+        default="",
+        max_length=10,
+        verbose_name=_("Amount unit"),
+    )
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     tags = TaggableManager(blank=True, through=Tagged)
 

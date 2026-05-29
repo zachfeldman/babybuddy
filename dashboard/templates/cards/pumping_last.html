@@ -17,6 +17,6 @@
 {% endblock %}
 {% block content %}
     {% if pumping %}
-        {% trans "Amount" %}: {{ pumping.amount }}
+        {% trans "Amount" %}: {{ pumping.amount }}{% if pumping.amount_unit %} {{ pumping.get_amount_unit_display }}{% endif %}
     {% endif %}
 {% endblock %}

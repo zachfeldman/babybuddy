@@ -71,8 +71,9 @@ class PumpingAdmin(ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
         "duration",
         "child",
         "amount",
+        "amount_unit",
     )
-    list_filter = ("child",)
+    list_filter = ("child", "amount_unit")
     search_fields = (
         "child__first_name",
         "child__last_name",
@@ -112,11 +113,13 @@ class FeedingAdmin(ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
         "type",
         "method",
         "amount",
+        "amount_unit",
     )
     list_filter = (
         "child",
         "type",
         "method",
+        "amount_unit",
         "tags",
     )
     search_fields = (

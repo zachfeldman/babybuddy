@@ -7,6 +7,7 @@ import plotly.graph_objs as go
 
 from reports import utils
 from core import models
+from core.units import VOLUME_UNIT_CHOICES, convert_volume, get_default_unit
 
 
 def feeding_amounts(instances):
@@ -15,6 +16,8 @@ def feeding_amounts(instances):
     :param instances: a QuerySet of Feeding instances.
     :returns: a tuple of the graph's html and javascript.
     """
+    default_unit = get_default_unit("volume")
+
     feeding_types, feeding_types_desc = map(
         list, zip(*models.Feeding._meta.get_field("type").choices)
     )
@@ -28,9 +31,12 @@ def feeding_amounts(instances):
         if date not in totals_list[total_idx - 1].keys():
             for item in totals_list:
                 item[date] = 0
+        amount = instance.amount or 0
+        if amount and instance.amount_unit and instance.amount_unit != default_unit:
+            amount = convert_volume(amount, instance.amount_unit, default_unit)
         feeding_idx = feeding_types.index(instance.type)
-        totals_list[feeding_idx][date] += instance.amount or 0
-        totals_list[total_idx - 1][date] += instance.amount or 0
+        totals_list[feeding_idx][date] += amount
+        totals_list[total_idx - 1][date] += amount
     zeros = [0 for a in totals_list[total_idx - 1].values()]
 
     # sum each feeding type for graph
@@ -69,7 +75,10 @@ def feeding_amounts(instances):
     layout_args["title"] = "<b>" + _("Total Feeding Amount by Type") + "</b>"
     layout_args["xaxis"]["title"] = _("Date")
     layout_args["xaxis"]["rangeselector"] = utils.rangeselector_date()
-    layout_args["yaxis"]["title"] = _("Feeding amount")
+    unit_label = dict(VOLUME_UNIT_CHOICES).get(default_unit, "")
+    layout_args["yaxis"]["title"] = _("Feeding amount") + (
+        f" ({unit_label})" if unit_label else ""
+    )
 
     fig = go.Figure({"data": traces, "layout": go.Layout(**layout_args)})
     fig.update_layout(barmode="stack")

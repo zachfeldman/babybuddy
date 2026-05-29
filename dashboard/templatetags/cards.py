@@ -8,6 +8,7 @@ from django.utils.translation import gettext as _
 import collections
 
 from core import models
+from core.units import VOLUME_UNIT_CHOICES, convert_volume, get_default_unit
 
 register = template.Library()
 
@@ -203,6 +204,9 @@ def card_feeding_recent(context, child, end_date=None):
     dates = [end_date - timezone.timedelta(days=i) for i in range(8)]
     results = [{"date": d, "total": 0, "count": 0} for d in dates]
 
+    default_unit = get_default_unit("volume")
+    has_units = False
+
     # do one pass over the data and add it to the appropriate day
     for instance in instances:
         # convert to local tz and push feed_date to end so we're comparing apples to apples for the date
@@ -211,12 +215,20 @@ def card_feeding_recent(context, child, end_date=None):
         )
         idx = (end_date - feed_date).days
         result = results[idx]
-        result["total"] += instance.amount if instance.amount is not None else 0
+        amount = instance.amount or 0
+        if amount and instance.amount_unit and instance.amount_unit != default_unit:
+            amount = convert_volume(amount, instance.amount_unit, default_unit)
+        if instance.amount_unit:
+            has_units = True
+        result["total"] += amount
         result["count"] += 1
+
+    unit_label = dict(VOLUME_UNIT_CHOICES).get(default_unit, "") if has_units else ""
 
     return {
         "feedings": results,
         "type": "feeding",
+        "unit": unit_label,
         "empty": len(instances) == 0,
         "hide_empty": _hide_empty(context),
     }
@@ -313,18 +325,29 @@ def card_pumping_recent(context, child, end_date=None):
     dates = [end_date - timezone.timedelta(days=i) for i in range(8)]
     results = [{"date": d, "total": 0, "count": 0} for d in dates]
 
+    default_unit = get_default_unit("volume")
+    has_units = False
+
     for instance in instances:
         pump_date = timezone.localtime(instance.end).replace(
             hour=23, minute=59, second=59, microsecond=9999
         )
         idx = (end_date - pump_date).days
         result = results[idx]
-        result["total"] += instance.amount if instance.amount is not None else 0
+        amount = instance.amount or 0
+        if amount and instance.amount_unit and instance.amount_unit != default_unit:
+            amount = convert_volume(amount, instance.amount_unit, default_unit)
+        if instance.amount_unit:
+            has_units = True
+        result["total"] += amount
         result["count"] += 1
+
+    unit_label = dict(VOLUME_UNIT_CHOICES).get(default_unit, "") if has_units else ""
 
     return {
         "pumpings": results,
         "type": "pumping",
+        "unit": unit_label,
         "empty": len(instances) == 0,
         "hide_empty": _hide_empty(context),
     }

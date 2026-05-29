@@ -66,6 +66,12 @@ def set_initial_values(kwargs, form_type):
                 last_feed_args["method"] = last_method
             kwargs["initial"].update(last_feed_args)
 
+    # Set default amount_unit for volume-based forms.
+    if form_type in (FeedingForm, PumpingForm) and "amount_unit" not in kwargs["initial"]:
+        from core.units import get_default_unit
+
+        kwargs["initial"]["amount_unit"] = get_default_unit("volume")
+
     # Set default "nap" value for Sleep instances.
     if form_type == SleepForm and "nap" not in kwargs["initial"]:
         try:
@@ -255,19 +261,30 @@ class DiaperChangeForm(CoreModelForm, TaggableModelForm):
 class FeedingForm(CoreModelForm, TaggableModelForm):
     fieldsets = [
         {"fields": ["child", "start", "end", "type", "method"], "layout": "required"},
-        {"fields": ["amount"]},
+        {"fields": ["amount", "amount_unit"]},
         {"fields": ["notes", "tags"], "layout": "advanced"},
     ]
 
     class Meta:
         model = models.Feeding
-        fields = ["child", "start", "end", "type", "method", "amount", "notes", "tags"]
+        fields = [
+            "child",
+            "start",
+            "end",
+            "type",
+            "method",
+            "amount",
+            "amount_unit",
+            "notes",
+            "tags",
+        ]
         widgets = {
             "child": ChildRadioSelect,
             "start": DateTimeInput(),
             "end": DateTimeInput(),
             "type": PillRadioSelect(),
             "method": PillRadioSelect(),
+            "amount_unit": PillRadioSelect(),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }
 
@@ -370,17 +387,18 @@ class MedicationForm(CoreModelForm, TaggableModelForm):
 class PumpingForm(CoreModelForm, TaggableModelForm):
     fieldsets = [
         {"fields": ["child", "start", "end"], "layout": "required"},
-        {"fields": ["amount"]},
+        {"fields": ["amount", "amount_unit"]},
         {"fields": ["notes", "tags"], "layout": "advanced"},
     ]
 
     class Meta:
         model = models.Pumping
-        fields = ["child", "start", "end", "amount", "notes", "tags"]
+        fields = ["child", "start", "end", "amount", "amount_unit", "notes", "tags"]
         widgets = {
             "child": ChildRadioSelect,
             "start": DateTimeInput(),
             "end": DateTimeInput(),
+            "amount_unit": PillRadioSelect(),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }
 

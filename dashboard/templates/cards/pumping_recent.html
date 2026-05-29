@@ -13,7 +13,7 @@
                     <div class="carousel-item{% if forloop.counter == 1 %} active{% endif %}">
                         <div class="last-feeding-method text-center">
                             {% if pumping.total %}
-                                {{ pumping.total|floatformat }}
+                                {{ pumping.total|floatformat }}{% if unit %} {{ unit }}{% endif %}
                             {% else %}
                                 {% trans "None" %}
                             {% endif %}
