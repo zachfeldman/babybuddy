@@ -42,12 +42,13 @@ def set_default_site_settings(sender, **kwargs):
         nap_start_max = models.Sleep.settings.nap_start_max
 
     defaults = (
-        ("Sleep", "nap_start_min", nap_start_min),
-        ("Sleep", "nap_start_max", nap_start_max),
+        ("core.models", "Sleep", "nap_start_min", nap_start_min),
+        ("core.models", "Sleep", "nap_start_max", nap_start_max),
+        ("babybuddy.site_settings", "", "default_unit_system", "metric"),
     )
-    for class_name, attribute_name, value in defaults:
-        if not setting_in_db("core.models", class_name, attribute_name):
-            set_setting_value("core.models", class_name, attribute_name, value)
+    for module_name, class_name, attribute_name, value in defaults:
+        if not setting_in_db(module_name, class_name, attribute_name):
+            set_setting_value(module_name, class_name, attribute_name, value)
 
 
 class BabyBuddyConfig(AppConfig):

@@ -45,6 +45,7 @@ class SiteSettingsTestCase(TestCase):
         params = {
             "core.models__Sleep__nap_start_max": "20:00:00",
             "core.models__Sleep__nap_start_min": "09:00:00",
+            "babybuddy.site_settings____default_unit_system": "metric",
         }
         page = self.c.post("/settings/", params, follow=True)
         self.assertEqual(page.status_code, 200)
@@ -56,3 +57,30 @@ class SiteSettingsTestCase(TestCase):
             Sleep.settings.nap_start_min.strftime("%H:%M:%S"),
             params["core.models__Sleep__nap_start_min"],
         )
+
+    def test_settings_measurement_default(self):
+        self.c.login(**self.credentials)
+        page = self.c.get("/settings/")
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(
+            page.context["form"][
+                "babybuddy.site_settings____default_unit_system"
+            ].value(),
+            "metric",
+        )
+
+    def test_settings_measurement_unit_system(self):
+        from babybuddy.site_settings import measurement_settings
+
+        self.c.login(**self.credentials)
+        params = {
+            "core.models__Sleep__nap_start_max": "18:00:00",
+            "core.models__Sleep__nap_start_min": "06:00:00",
+            "babybuddy.site_settings____default_unit_system": "us_customary",
+        }
+        page = self.c.post("/settings/", params, follow=True)
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(measurement_settings.default_unit_system, "us_customary")
+        # restore
+        params["babybuddy.site_settings____default_unit_system"] = "metric"
+        self.c.post("/settings/", params, follow=True)

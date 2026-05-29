@@ -34,3 +34,21 @@ class NapSettings(dbsettings.Group):
         ),
         widget=TimeInput,
     )
+
+
+class MeasurementSettings(dbsettings.Group):
+    default_unit_system = dbsettings.StringValue(
+        default="metric",
+        description=_("Default unit system"),
+        help_text=_(
+            "Sets the default unit pre-selected when adding new entries. "
+            "Metric: mL, kg, cm, °C. US Customary: fl oz, lb, in, °F."
+        ),
+        choices=[
+            ("metric", _("Metric")),
+            ("us_customary", _("US Customary")),
+        ],
+    )
+
+
+measurement_settings = MeasurementSettings(_("Measurement settings"))
