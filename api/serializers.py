@@ -124,6 +124,7 @@ class PumpingSerializer(CoreModelWithDurationSerializer, TaggableSerializer):
             "id",
             "child",
             "amount",
+            "amount_unit",
             "start",
             "end",
             "duration",
@@ -159,6 +160,7 @@ class DiaperChangeSerializer(CoreModelSerializer, TaggableSerializer):
             "solid",
             "color",
             "amount",
+            "amount_unit",
             "notes",
             "tags",
         )
@@ -177,6 +179,7 @@ class FeedingSerializer(CoreModelWithDurationSerializer, TaggableSerializer):
             "type",
             "method",
             "amount",
+            "amount_unit",
             "notes",
             "tags",
         )
@@ -185,13 +188,13 @@ class FeedingSerializer(CoreModelWithDurationSerializer, TaggableSerializer):
 class HeadCircumferenceSerializer(CoreModelSerializer, TaggableSerializer):
     class Meta:
         model = models.HeadCircumference
-        fields = ("id", "child", "head_circumference", "date", "notes", "tags")
+        fields = ("id", "child", "head_circumference", "unit", "date", "notes", "tags")
 
 
 class HeightSerializer(CoreModelSerializer, TaggableSerializer):
     class Meta:
         model = models.Height
-        fields = ("id", "child", "height", "date", "notes", "tags")
+        fields = ("id", "child", "height", "unit", "date", "notes", "tags")
 
 
 class MedicationSerializer(CoreModelSerializer, TaggableSerializer):
@@ -248,7 +251,7 @@ class TagSerializer(serializers.HyperlinkedModelSerializer):
 class TemperatureSerializer(CoreModelSerializer, TaggableSerializer):
     class Meta:
         model = models.Temperature
-        fields = ("id", "child", "temperature", "time", "notes", "tags")
+        fields = ("id", "child", "temperature", "temperature_unit", "time", "notes", "tags")
 
 
 class TimerSerializer(CoreModelSerializer):
@@ -298,7 +301,7 @@ class TummyTimeSerializer(CoreModelWithDurationSerializer, TaggableSerializer):
 class WeightSerializer(CoreModelSerializer, TaggableSerializer):
     class Meta:
         model = models.Weight
-        fields = ("id", "child", "weight", "date", "notes", "tags")
+        fields = ("id", "child", "weight", "weight_unit", "date", "notes", "tags")
 
 
 class UserSerializer(serializers.ModelSerializer):
