@@ -6,6 +6,7 @@ import plotly.offline as plotly
 import plotly.graph_objs as go
 
 from reports import utils
+from core.units import DIAPER_UNIT_CHOICES, convert_diaper, get_default_unit
 
 
 def diaperchange_amounts(instances):
@@ -14,13 +15,18 @@ def diaperchange_amounts(instances):
     :param instances: a QuerySet of DiaperChange instances.
     :returns: a tuple of the graph's html and javascript.
     """
+    default_unit = get_default_unit("diaper")
+
     totals = {}
     for instance in instances:
         time_local = timezone.localtime(instance.time)
         date = time_local.date()
         if date not in totals.keys():
             totals[date] = 0
-        totals[date] += instance.amount or 0
+        amount = instance.amount or 0
+        if amount and instance.amount_unit and instance.amount_unit != default_unit:
+            amount = convert_diaper(amount, instance.amount_unit, default_unit)
+        totals[date] += amount
 
     amounts = [round(amount, 2) for amount in totals.values()]
     trace = go.Bar(
@@ -36,7 +42,10 @@ def diaperchange_amounts(instances):
     layout_args["title"] = "<b>" + _("Diaper Change Amounts") + "</b>"
     layout_args["xaxis"]["title"] = _("Date")
     layout_args["xaxis"]["rangeselector"] = utils.rangeselector_date()
-    layout_args["yaxis"]["title"] = _("Change amount")
+    unit_label = dict(DIAPER_UNIT_CHOICES).get(default_unit, "")
+    layout_args["yaxis"]["title"] = _("Change amount") + (
+        f" ({unit_label})" if unit_label else ""
+    )
 
     fig = go.Figure({"data": [trace], "layout": go.Layout(**layout_args)})
     output = plotly.plot(fig, output_type="div", include_plotlyjs=False)

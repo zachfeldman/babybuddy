@@ -17,6 +17,7 @@ from taggit.models import GenericTaggedItemBase, TagBase
 
 from babybuddy.site_settings import NapSettings
 from core.units import (
+    DIAPER_UNIT_CHOICES,
     HEIGHT_UNIT_CHOICES,
     TEMP_UNIT_CHOICES,
     VOLUME_UNIT_CHOICES,
@@ -277,6 +278,13 @@ class DiaperChange(models.Model):
         verbose_name=_("Color"),
     )
     amount = models.FloatField(blank=True, null=True, verbose_name=_("Amount"))
+    amount_unit = models.CharField(
+        blank=True,
+        choices=DIAPER_UNIT_CHOICES,
+        default="",
+        max_length=10,
+        verbose_name=_("Amount unit"),
+    )
     notes = models.TextField(blank=True, null=True, verbose_name=_("Notes"))
     tags = TaggableManager(blank=True, through=Tagged)
 

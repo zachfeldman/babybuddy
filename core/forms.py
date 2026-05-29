@@ -66,6 +66,12 @@ def set_initial_values(kwargs, form_type):
                 last_feed_args["method"] = last_method
             kwargs["initial"].update(last_feed_args)
 
+    # Set default amount_unit for diaper change forms.
+    if form_type == DiaperChangeForm and "amount_unit" not in kwargs["initial"]:
+        from core.units import get_default_unit
+
+        kwargs["initial"]["amount_unit"] = get_default_unit("diaper")
+
     # Set default temperature_unit for temperature forms.
     if form_type == TemperatureForm and "temperature_unit" not in kwargs["initial"]:
         from core.units import get_default_unit
@@ -261,16 +267,27 @@ class DiaperChangeForm(CoreModelForm, TaggableModelForm):
             "layout": "choices",
             "layout_attrs": {"label": "Contents"},
         },
-        {"fields": ["color", "amount"]},
+        {"fields": ["color", "amount", "amount_unit"]},
         {"layout": "advanced", "fields": ["notes", "tags"]},
     ]
 
     class Meta:
         model = models.DiaperChange
-        fields = ["child", "time", "wet", "solid", "color", "amount", "notes", "tags"]
+        fields = [
+            "child",
+            "time",
+            "wet",
+            "solid",
+            "color",
+            "amount",
+            "amount_unit",
+            "notes",
+            "tags",
+        ]
         widgets = {
             "child": ChildRadioSelect(),
             "color": PillRadioSelect(),
+            "amount_unit": PillRadioSelect(),
             "time": DateTimeInput(),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }

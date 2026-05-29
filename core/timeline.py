@@ -202,6 +202,12 @@ def _add_diaper_changes(min_date, max_date, events, child):
             contents.append("💧")
         if instance.solid:
             contents.append("💩")
+        details = []
+        if instance.amount:
+            amount_str = str(instance.amount)
+            if instance.amount_unit:
+                amount_str += " " + instance.get_amount_unit_display()
+            details.append(_("Amount") + ": " + amount_str)
         events.append(
             {
                 "time": timezone.localtime(instance.time),
@@ -210,6 +216,7 @@ def _add_diaper_changes(min_date, max_date, events, child):
                     "child": instance.child.first_name,
                     "type": "".join(contents),
                 },
+                "details": details,
                 "edit_link": reverse("core:diaperchange-update", args=[instance.id]),
                 "model_name": instance.model_name,
                 "tags": instance.tags.all(),
