@@ -242,9 +242,10 @@ class TemperatureAdmin(ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
     list_display = (
         "child",
         "temperature",
+        "temperature_unit",
         "time",
     )
-    list_filter = ("child", "tags")
+    list_filter = ("child", "temperature_unit", "tags")
     search_fields = (
         "child__first_name",
         "child__last_name",

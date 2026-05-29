@@ -297,7 +297,10 @@ def _add_temperature_measurements(min_date, max_date, events, child):
         if instance.notes:
             details.append(instance.notes)
         if instance.temperature:
-            details.append(_("Temperature") + ": " + str(instance.temperature))
+            temp_str = str(instance.temperature)
+            if instance.temperature_unit:
+                temp_str += " " + instance.get_temperature_unit_display()
+            details.append(_("Temperature") + ": " + temp_str)
         events.append(
             {
                 "time": timezone.localtime(instance.time),

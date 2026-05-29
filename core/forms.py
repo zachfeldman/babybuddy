@@ -66,6 +66,12 @@ def set_initial_values(kwargs, form_type):
                 last_feed_args["method"] = last_method
             kwargs["initial"].update(last_feed_args)
 
+    # Set default temperature_unit for temperature forms.
+    if form_type == TemperatureForm and "temperature_unit" not in kwargs["initial"]:
+        from core.units import get_default_unit
+
+        kwargs["initial"]["temperature_unit"] = get_default_unit("temperature")
+
     # Set default unit for height/head-circumference forms.
     if form_type in (HeadCircumferenceForm, HeightForm) and "unit" not in kwargs["initial"]:
         from core.units import get_default_unit
@@ -471,7 +477,7 @@ class TagAdminForm(CoreModelForm):
 class TemperatureForm(CoreModelForm, TaggableModelForm):
     fieldsets = [
         {
-            "fields": ["child", "temperature", "time"],
+            "fields": ["child", "temperature", "temperature_unit", "time"],
             "layout": "required",
         },
         {"fields": ["notes", "tags"], "layout": "advanced"},
@@ -479,9 +485,10 @@ class TemperatureForm(CoreModelForm, TaggableModelForm):
 
     class Meta:
         model = models.Temperature
-        fields = ["child", "temperature", "time", "notes", "tags"]
+        fields = ["child", "temperature", "temperature_unit", "time", "notes", "tags"]
         widgets = {
             "child": ChildRadioSelect,
+            "temperature_unit": PillRadioSelect(),
             "time": DateTimeInput(),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }
