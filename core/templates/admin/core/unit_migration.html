@@ -1,0 +1,79 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Migrate Legacy Unit Data" %}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans "Home" %}</a>
+    &rsaquo; {% trans "Migrate Legacy Unit Data" %}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{% trans "Migrate Legacy Unit Data" %}</h1>
+
+<p>
+    {% blocktrans trimmed %}
+    Before this feature was added, all measurements were stored as unit-less numbers.
+    Use this tool to assign a unit to all existing entries that do not yet have one.
+    {% endblocktrans %}
+</p>
+
+<p>
+    {% blocktrans trimmed %}
+    <strong>Convert values</strong>: if the unit you select differs from the current site
+    default, you can optionally have the stored numbers recalculated so they remain
+    numerically correct in the new default unit (e.g., 3 fl oz → 88.7 mL).
+    Leave this unchecked to simply label existing numbers without changing them.
+    {% endblocktrans %}
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">{% trans "Measurement" %}</th>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">{% trans "Entries with no unit" %}</th>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">{% trans "Include" %}</th>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">{% trans "Legacy unit is" %}</th>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">{% trans "Convert values" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr{% if row.blank_count == 0 %} style="color: #999;"{% endif %}>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ row.spec.label }}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ row.blank_count }}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    {% if row.blank_count > 0 %}
+                        {{ row.form.enabled }}
+                    {% else %}
+                        &mdash;
+                    {% endif %}
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    {% if row.blank_count > 0 %}
+                        {{ row.form.unit }}
+                    {% else %}
+                        &mdash;
+                    {% endif %}
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    {% if row.blank_count > 0 %}
+                        {{ row.form.convert }}
+                    {% else %}
+                        &mdash;
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top: 16px;">
+        <input type="submit" value="{% trans "Apply Migration" %}" class="default">
+    </div>
+</form>
+{% endblock %}

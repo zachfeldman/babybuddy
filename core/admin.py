@@ -1,11 +1,30 @@
 # -*- coding: utf-8 -*-
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
 from django.conf import settings
+from django.db import models as db_models
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
+from django.urls import path
+from django.utils.translation import gettext_lazy as _
 
 from import_export import fields, resources
 from import_export.admin import ImportExportMixin, ExportActionMixin
 
 from core import models
+from core.units import (
+    DIAPER_UNIT_CHOICES,
+    HEIGHT_UNIT_CHOICES,
+    TEMP_UNIT_CHOICES,
+    VOLUME_UNIT_CHOICES,
+    WEIGHT_UNIT_CHOICES,
+    convert_diaper,
+    convert_height,
+    convert_temperature,
+    convert_volume,
+    convert_weight,
+    get_default_unit,
+)
 
 
 class ImportExportResourceBase(resources.ModelResource):
@@ -325,3 +344,208 @@ class TagAdmin(ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
     search_fields = ("name", "color")
     prepopulated_fields = {"slug": ["name"]}
     resource_class = TagImportExportResource
+
+
+# ---------------------------------------------------------------------------
+# Unit migration tool
+# ---------------------------------------------------------------------------
+
+# Describes each measurement field that can have legacy unitless data.
+_UNIT_MIGRATION_FIELDS = [
+    {
+        "label": _("Feeding amount"),
+        "model": models.Feeding,
+        "value_field": "amount",
+        "unit_field": "amount_unit",
+        "choices": VOLUME_UNIT_CHOICES,
+        "convert_fn": convert_volume,
+        "unit_type": "volume",
+    },
+    {
+        "label": _("Pumping amount"),
+        "model": models.Pumping,
+        "value_field": "amount",
+        "unit_field": "amount_unit",
+        "choices": VOLUME_UNIT_CHOICES,
+        "convert_fn": convert_volume,
+        "unit_type": "volume",
+    },
+    {
+        "label": _("Weight"),
+        "model": models.Weight,
+        "value_field": "weight",
+        "unit_field": "weight_unit",
+        "choices": WEIGHT_UNIT_CHOICES,
+        "convert_fn": convert_weight,
+        "unit_type": "weight",
+    },
+    {
+        "label": _("Height"),
+        "model": models.Height,
+        "value_field": "height",
+        "unit_field": "unit",
+        "choices": HEIGHT_UNIT_CHOICES,
+        "convert_fn": convert_height,
+        "unit_type": "height",
+    },
+    {
+        "label": _("Head Circumference"),
+        "model": models.HeadCircumference,
+        "value_field": "head_circumference",
+        "unit_field": "unit",
+        "choices": HEIGHT_UNIT_CHOICES,
+        "convert_fn": convert_height,
+        "unit_type": "height",
+    },
+    {
+        "label": _("Temperature"),
+        "model": models.Temperature,
+        "value_field": "temperature",
+        "unit_field": "temperature_unit",
+        "choices": TEMP_UNIT_CHOICES,
+        "convert_fn": convert_temperature,
+        "unit_type": "temperature",
+    },
+    {
+        "label": _("Diaper change amount"),
+        "model": models.DiaperChange,
+        "value_field": "amount",
+        "unit_field": "amount_unit",
+        "choices": DIAPER_UNIT_CHOICES,
+        "convert_fn": convert_diaper,
+        "unit_type": "diaper",
+    },
+]
+
+
+class _UnitMigrationRowForm(forms.Form):
+    """One row in the migration form for a single measurement field."""
+
+    enabled = forms.BooleanField(required=False)
+    unit = forms.ChoiceField(required=False)
+    convert = forms.BooleanField(
+        required=False,
+        label=_("Convert existing values to site default unit"),
+        help_text=_(
+            "If checked, stored numeric values will be multiplied/divided so they "
+            "remain correct after the unit label is changed."
+        ),
+    )
+
+    def __init__(self, *args, choices=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["unit"].choices = choices
+
+
+class UnitMigrationProxy(db_models.Model):
+    """Non-DB proxy used only to register the unit migration admin page."""
+
+    class Meta:
+        managed = False
+        app_label = "core"
+        verbose_name = _("Unit Migration")
+        verbose_name_plural = _("Unit Migration")
+
+
+@admin.register(UnitMigrationProxy)
+class UnitMigrationAdmin(admin.ModelAdmin):
+    def get_urls(self):
+        return [
+            path(
+                "",
+                self.admin_site.admin_view(self.migration_view),
+                name="core_unitmigrationproxy_changelist",
+            ),
+        ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def migration_view(self, request):
+        rows = []
+        for spec in _UNIT_MIGRATION_FIELDS:
+            blank_count = (
+                spec["model"]
+                .objects.filter(**{spec["unit_field"]: ""})
+                .count()
+            )
+            form_prefix = spec["model"].__name__.lower() + "_" + spec["unit_field"]
+            form = _UnitMigrationRowForm(
+                request.POST if request.method == "POST" else None,
+                prefix=form_prefix,
+                choices=spec["choices"],
+            )
+            rows.append(
+                {
+                    "spec": spec,
+                    "blank_count": blank_count,
+                    "form": form,
+                    "prefix": form_prefix,
+                }
+            )
+
+        if request.method == "POST" and all(r["form"].is_valid() for r in rows):
+            total_updated = 0
+            for row in rows:
+                data = row["form"].cleaned_data
+                if not data.get("enabled"):
+                    continue
+                chosen_unit = data["unit"]
+                if not chosen_unit:
+                    continue
+                spec = row["spec"]
+                default_unit = get_default_unit(spec["unit_type"])
+                should_convert = data.get("convert") and chosen_unit != default_unit
+
+                qs = spec["model"].objects.filter(**{spec["unit_field"]: ""})
+                if spec["value_field"] == "amount":
+                    qs = qs.filter(amount__isnull=False)
+
+                updated = 0
+                for instance in qs:
+                    if should_convert:
+                        old_val = getattr(instance, spec["value_field"])
+                        if old_val is not None:
+                            new_val = spec["convert_fn"](old_val, chosen_unit, default_unit)
+                            setattr(instance, spec["value_field"], new_val)
+                    setattr(instance, spec["unit_field"], chosen_unit if not should_convert else default_unit)
+                    instance.save(update_fields=[spec["value_field"], spec["unit_field"]] if should_convert else [spec["unit_field"]])
+                    updated += 1
+
+                # Also set unit for nullable-amount entries (no value conversion needed)
+                if spec["value_field"] == "amount":
+                    null_updated = (
+                        spec["model"]
+                        .objects.filter(**{spec["unit_field"]: ""})
+                        .update(**{spec["unit_field"]: chosen_unit if not should_convert else default_unit})
+                    )
+                    updated += null_updated
+
+                total_updated += updated
+
+            messages.success(
+                request,
+                _("Migration complete. %(n)d entries updated.") % {"n": total_updated},
+            )
+            return redirect("admin:core_unitmigrationproxy_changelist")
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": _("Migrate Legacy Unit Data"),
+            "rows": rows,
+            "opts": self.model._meta,
+        }
+        return TemplateResponse(
+            request,
+            "admin/core/unit_migration.html",
+            context,
+        )
