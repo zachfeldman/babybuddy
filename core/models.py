@@ -16,7 +16,7 @@ from taggit.managers import TaggableManager as TaggitTaggableManager
 from taggit.models import GenericTaggedItemBase, TagBase
 
 from babybuddy.site_settings import NapSettings
-from core.units import VOLUME_UNIT_CHOICES, WEIGHT_UNIT_CHOICES
+from core.units import HEIGHT_UNIT_CHOICES, VOLUME_UNIT_CHOICES, WEIGHT_UNIT_CHOICES
 from core.utils import random_color, timezone_aware_duration
 
 
@@ -386,6 +386,13 @@ class HeadCircumference(models.Model):
     head_circumference = models.FloatField(
         blank=False, null=False, verbose_name=_("Head Circumference")
     )
+    unit = models.CharField(
+        blank=True,
+        choices=HEIGHT_UNIT_CHOICES,
+        default="",
+        max_length=10,
+        verbose_name=_("Unit"),
+    )
     date = models.DateField(
         blank=False, default=timezone.localdate, null=False, verbose_name=_("Date")
     )
@@ -416,6 +423,13 @@ class Height(models.Model):
         verbose_name=_("Child"),
     )
     height = models.FloatField(blank=False, null=False, verbose_name=_("Height"))
+    unit = models.CharField(
+        blank=True,
+        choices=HEIGHT_UNIT_CHOICES,
+        default="",
+        max_length=10,
+        verbose_name=_("Unit"),
+    )
     date = models.DateField(
         blank=False, default=timezone.localdate, null=False, verbose_name=_("Date")
     )

@@ -9,8 +9,10 @@ import collections
 
 from core import models
 from core.units import (
+    HEIGHT_UNIT_CHOICES,
     VOLUME_UNIT_CHOICES,
     WEIGHT_UNIT_CHOICES,
+    convert_height,
     convert_volume,
     convert_weight,
     get_default_unit,
@@ -560,6 +562,7 @@ def card_statistics(context, child):
             {
                 "type": "float",
                 "stat": height["change_weekly"],
+                "unit": height["unit"],
                 "title": _("Height change per week"),
             }
         )
@@ -570,6 +573,7 @@ def card_statistics(context, child):
             {
                 "type": "float",
                 "stat": head_circumference["change_weekly"],
+                "unit": head_circumference["unit"],
                 "title": _("Head circumference change per week"),
             }
         )
@@ -789,19 +793,31 @@ def _height_statistics(child):
     :param child: an instance of the Child model.
     :returns: a dictionary of statistics.
     """
-    height = {"change_weekly": 0.0}
+    height = {"change_weekly": 0.0, "unit": ""}
 
     instances = models.Height.objects.filter(child=child).order_by("-date")
     if len(instances) == 0:
         return False
 
+    default_unit = get_default_unit("height")
+    has_units = any(i.unit for i in instances)
+
+    def to_default(instance):
+        h = instance.height
+        if instance.unit and instance.unit != default_unit:
+            h = convert_height(h, instance.unit, default_unit)
+        return h
+
     newest = instances.first()
     oldest = instances.last()
 
     if newest != oldest:
-        height_change = newest.height - oldest.height
+        height_change = to_default(newest) - to_default(oldest)
         weeks = (newest.date - oldest.date).days / 7
         height["change_weekly"] = height_change / weeks
+
+    if has_units:
+        height["unit"] = dict(HEIGHT_UNIT_CHOICES).get(default_unit, "")
 
     return height
 
@@ -812,19 +828,31 @@ def _head_circumference_statistics(child):
     :param child: an instance of the Child model.
     :returns: a dictionary of statistics.
     """
-    head_circumference = {"change_weekly": 0.0}
+    head_circumference = {"change_weekly": 0.0, "unit": ""}
 
     instances = models.HeadCircumference.objects.filter(child=child).order_by("-date")
     if len(instances) == 0:
         return False
 
+    default_unit = get_default_unit("height")
+    has_units = any(i.unit for i in instances)
+
+    def to_default(instance):
+        hc = instance.head_circumference
+        if instance.unit and instance.unit != default_unit:
+            hc = convert_height(hc, instance.unit, default_unit)
+        return hc
+
     newest = instances.first()
     oldest = instances.last()
 
     if newest != oldest:
-        hc_change = newest.head_circumference - oldest.head_circumference
+        hc_change = to_default(newest) - to_default(oldest)
         weeks = (newest.date - oldest.date).days / 7
         head_circumference["change_weekly"] = hc_change / weeks
+
+    if has_units:
+        head_circumference["unit"] = dict(HEIGHT_UNIT_CHOICES).get(default_unit, "")
 
     return head_circumference
 

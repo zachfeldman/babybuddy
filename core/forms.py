@@ -66,6 +66,12 @@ def set_initial_values(kwargs, form_type):
                 last_feed_args["method"] = last_method
             kwargs["initial"].update(last_feed_args)
 
+    # Set default unit for height/head-circumference forms.
+    if form_type in (HeadCircumferenceForm, HeightForm) and "unit" not in kwargs["initial"]:
+        from core.units import get_default_unit
+
+        kwargs["initial"]["unit"] = get_default_unit("height")
+
     # Set default weight_unit for weight forms.
     if form_type == WeightForm and "weight_unit" not in kwargs["initial"]:
         from core.units import get_default_unit
@@ -298,7 +304,7 @@ class FeedingForm(CoreModelForm, TaggableModelForm):
 class HeadCircumferenceForm(CoreModelForm, TaggableModelForm):
     fieldsets = [
         {
-            "fields": ["child", "head_circumference", "date"],
+            "fields": ["child", "head_circumference", "unit", "date"],
             "layout": "required",
         },
         {"fields": ["notes", "tags"], "layout": "advanced"},
@@ -306,9 +312,10 @@ class HeadCircumferenceForm(CoreModelForm, TaggableModelForm):
 
     class Meta:
         model = models.HeadCircumference
-        fields = ["child", "head_circumference", "date", "notes", "tags"]
+        fields = ["child", "head_circumference", "unit", "date", "notes", "tags"]
         widgets = {
             "child": ChildRadioSelect,
+            "unit": PillRadioSelect(),
             "date": DateInput(),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }
@@ -317,7 +324,7 @@ class HeadCircumferenceForm(CoreModelForm, TaggableModelForm):
 class HeightForm(CoreModelForm, TaggableModelForm):
     fieldsets = [
         {
-            "fields": ["child", "height", "date"],
+            "fields": ["child", "height", "unit", "date"],
             "layout": "required",
         },
         {"fields": ["notes", "tags"], "layout": "advanced"},
@@ -325,9 +332,10 @@ class HeightForm(CoreModelForm, TaggableModelForm):
 
     class Meta:
         model = models.Height
-        fields = ["child", "height", "date", "notes", "tags"]
+        fields = ["child", "height", "unit", "date", "notes", "tags"]
         widgets = {
             "child": ChildRadioSelect,
+            "unit": PillRadioSelect(),
             "date": DateInput(),
             "notes": forms.Textarea(attrs={"rows": 5}),
         }

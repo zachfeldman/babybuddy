@@ -141,9 +141,10 @@ class HeadCircumferenceAdmin(ImportExportMixin, ExportActionMixin, admin.ModelAd
     list_display = (
         "child",
         "head_circumference",
+        "unit",
         "date",
     )
-    list_filter = ("child", "tags")
+    list_filter = ("child", "unit", "tags")
     search_fields = (
         "child__first_name",
         "child__last_name",
@@ -162,9 +163,10 @@ class HeightAdmin(ImportExportMixin, ExportActionMixin, admin.ModelAdmin):
     list_display = (
         "child",
         "height",
+        "unit",
         "date",
     )
-    list_filter = ("child", "tags")
+    list_filter = ("child", "unit", "tags")
     search_fields = (
         "child__first_name",
         "child__last_name",
