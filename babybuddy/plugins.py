@@ -61,10 +61,12 @@ class BabyBuddyPluginConfig(AppConfig):
     """
 
     # --- Nav ---
-    # Set both to add a top-level nav item.
+    # Set both to add a nav item.
     babybuddy_nav_label = None  # e.g. "Books"
     babybuddy_nav_url_name = None  # e.g. "books:book-list"
     babybuddy_nav_icon = "icon-note"  # CSS class from babybuddy icon font
+    # Set to "activities" to nest under the Activities dropdown instead of top-level.
+    babybuddy_nav_group = None
 
     # --- Dashboard ---
     # Set True and provide templates/<app_label>/cards/summary.html
@@ -101,18 +103,24 @@ def plugin_context(request):
 
     logger = logging.getLogger("babybuddy.plugins")
     nav_items = []
+    activity_nav_items = []
     for plugin in get_installed_plugins():
         try:
             if plugin.babybuddy_nav_label and plugin.babybuddy_nav_url_name:
-                nav_items.append(
-                    {
-                        "label": plugin.babybuddy_nav_label,
-                        "url_name": plugin.babybuddy_nav_url_name,
-                        "icon": plugin.babybuddy_nav_icon,
-                    }
-                )
+                item = {
+                    "label": plugin.babybuddy_nav_label,
+                    "url_name": plugin.babybuddy_nav_url_name,
+                    "icon": plugin.babybuddy_nav_icon,
+                }
+                if plugin.babybuddy_nav_group == "activities":
+                    activity_nav_items.append(item)
+                else:
+                    nav_items.append(item)
         except Exception as exc:
             logger.error(
                 "Plugin %r: failed to build nav item: %s", plugin.name, exc
             )
-    return {"babybuddy_plugin_nav_items": nav_items}
+    return {
+        "babybuddy_plugin_nav_items": nav_items,
+        "babybuddy_plugin_activity_nav_items": activity_nav_items,
+    }

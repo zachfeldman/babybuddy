@@ -99,6 +99,12 @@
             {% trans "Tummy Time" %}
         </a>
     {% endif %}
+    {% for plugin_nav_item in babybuddy_plugin_activity_nav_items %}
+        <a class="dropdown-item p-2" href="{% url plugin_nav_item.url_name %}">
+            <i class="{{ plugin_nav_item.icon }}" aria-hidden="true"></i>
+            {{ plugin_nav_item.label }}
+        </a>
+    {% endfor %}
 </div>
 </div>
 </div>
@@ -347,6 +353,12 @@
 {% trans "Tummy Time entry" %}
 </a>
 {% endif %}
+{% for plugin_nav_item in babybuddy_plugin_activity_nav_items %}
+<a class="dropdown-item" href="{% url plugin_nav_item.url_name %}">
+    <i class="{{ plugin_nav_item.icon }}" aria-hidden="true"></i>
+    {{ plugin_nav_item.label }}
+</a>
+{% endfor %}
 </div>
 </li>
 {% if perms.core.view_timer %}
