@@ -46,6 +46,7 @@ class PluginConfigDefaultsTestCase(TestCase):
         self.assertIsNone(cfg.babybuddy_nav_url_name)
         self.assertEqual(cfg.babybuddy_nav_icon, "icon-note")
         self.assertIsNone(cfg.babybuddy_activity_url_name)
+        self.assertIsNone(cfg.babybuddy_activity_label)
         self.assertFalse(cfg.babybuddy_has_dashboard_card)
         self.assertFalse(cfg.babybuddy_has_api)
         self.assertIsNone(cfg.babybuddy_quick_entry_handler)
@@ -109,20 +110,22 @@ class PluginContextTestCase(TestCase):
             ctx = plugin_context(self.request)
         self.assertEqual(ctx["babybuddy_plugin_nav_items"], [])
 
-    def test_activity_url_name_adds_to_activity_nav_items(self):
+    def test_activity_url_name_included_in_activity_nav_item(self):
         plugin = _make_plugin_config(
             babybuddy_nav_label="Readings",
             babybuddy_nav_url_name="books:reading-list",
             babybuddy_nav_icon="icon-note",
-            babybuddy_nav_group=None,
+            babybuddy_nav_group="activities",
             babybuddy_activity_url_name="books:reading-add",
+            babybuddy_activity_label="Reading",
         )
         with mock.patch("babybuddy.plugins.get_installed_plugins", return_value=[plugin]):
             ctx = plugin_context(self.request)
-        self.assertEqual(len(ctx["babybuddy_plugin_nav_items"]), 1)
-        self.assertEqual(ctx["babybuddy_plugin_nav_items"][0]["url_name"], "books:reading-list")
         self.assertEqual(len(ctx["babybuddy_plugin_activity_nav_items"]), 1)
-        self.assertEqual(ctx["babybuddy_plugin_activity_nav_items"][0]["url_name"], "books:reading-add")
+        item = ctx["babybuddy_plugin_activity_nav_items"][0]
+        self.assertEqual(item["url_name"], "books:reading-list")
+        self.assertEqual(item["add_url_name"], "books:reading-add")
+        self.assertEqual(item["add_label"], "Reading")
 
     def test_plugin_exception_does_not_crash_context(self):
         """A plugin that raises when its nav attrs are read must not crash the page."""

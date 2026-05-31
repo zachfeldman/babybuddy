@@ -104,6 +104,12 @@
             <i class="{{ plugin_nav_item.icon }}" aria-hidden="true"></i>
             {{ plugin_nav_item.label }}
         </a>
+        {% if plugin_nav_item.add_url_name %}
+        <a class="dropdown-item p-2 ps-5" href="{% url plugin_nav_item.add_url_name %}">
+            <i class="icon-add" aria-hidden="true"></i>
+            {{ plugin_nav_item.add_label }}
+        </a>
+        {% endif %}
     {% endfor %}
 </div>
 </div>
@@ -358,6 +364,12 @@
     <i class="{{ plugin_nav_item.icon }}" aria-hidden="true"></i>
     {{ plugin_nav_item.label }}
 </a>
+{% if plugin_nav_item.add_url_name %}
+<a class="dropdown-item ps-5" href="{% url plugin_nav_item.add_url_name %}">
+    <i class="icon-add" aria-hidden="true"></i>
+    {{ plugin_nav_item.add_label }}
+</a>
+{% endif %}
 {% endfor %}
 </div>
 </li>
