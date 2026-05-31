@@ -40,9 +40,7 @@ def plugin_cards(context, child):
                 {"child": child, "request": request, "hide_empty": hide_empty},
                 request=request,
             )
-            rendered.append(
-                f'<div class="col-sm-6 col-lg-4">{html}</div>'
-            )
+            rendered.append(f'<div class="col-sm-6 col-lg-4">{html}</div>')
         except Exception as exc:
             logger.error(
                 "Plugin %r: dashboard card %r failed to render: %s",

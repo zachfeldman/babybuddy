@@ -43,16 +43,18 @@
 <div class="dropdown-menu dropdown-menu-end"
      aria-labelledby="nav-quick-add-link">
     {% quick_entry_enabled as quick_entry_enabled %}
-    {% if quick_entry_enabled %}{% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
-        <a class="dropdown-item p-2"
-           href="#"
-           data-bs-toggle="modal"
-           data-bs-target="#quick-entry-modal">
-            <i class="icon-note" aria-hidden="true"></i>
-            {% trans "Quick Entry" %}
-        </a>
-        <div class="dropdown-divider"></div>
-    {% endif %}{% endif %}
+    {% if quick_entry_enabled %}
+        {% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
+            <a class="dropdown-item p-2"
+               href="#"
+               data-bs-toggle="modal"
+               data-bs-target="#quick-entry-modal">
+                <i class="icon-note" aria-hidden="true"></i>
+                {% trans "Quick Entry" %}
+            </a>
+            <div class="dropdown-divider"></div>
+        {% endif %}
+    {% endif %}
     {% if perms.core.add_diaperchange %}
         <a class="dropdown-item p-2" href="{% url 'core:diaperchange-add' %}">
             <i class="icon-diaperchange" aria-hidden="true"></i>
@@ -100,7 +102,8 @@
         </a>
     {% endif %}
     {% for plugin_nav_item in babybuddy_plugin_activity_nav_items %}
-        <a class="dropdown-item p-2" href="{% url plugin_nav_item.add_url_name|default:plugin_nav_item.url_name %}">
+        <a class="dropdown-item p-2"
+           href="{% url plugin_nav_item.add_url_name|default:plugin_nav_item.url_name %}">
             <i class="{{ plugin_nav_item.icon }}" aria-hidden="true"></i>
             {{ plugin_nav_item.add_label }}
         </a>
@@ -264,16 +267,18 @@
 {% trans "Activities" %}
 </a>
 <div class="dropdown-menu" aria-labelledby="nav-activity-menu-link">
-    {% if quick_entry_enabled %}{% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
-        <a class="dropdown-item p-2"
-           href="#"
-           data-bs-toggle="modal"
-           data-bs-target="#quick-entry-modal">
-            <i class="icon-note" aria-hidden="true"></i>
-            {% trans "Quick Entry" %}
-        </a>
-        <div class="dropdown-divider"></div>
-    {% endif %}{% endif %}
+    {% if quick_entry_enabled %}
+        {% if perms.core.add_feeding or perms.core.add_diaperchange or perms.core.add_sleep %}
+            <a class="dropdown-item p-2"
+               href="#"
+               data-bs-toggle="modal"
+               data-bs-target="#quick-entry-modal">
+                <i class="icon-note" aria-hidden="true"></i>
+                {% trans "Quick Entry" %}
+            </a>
+            <div class="dropdown-divider"></div>
+        {% endif %}
+    {% endif %}
     {% if perms.core.view_diaperchange %}
     <a class="dropdown-item{% if request.path == '/changes/' %} active{% endif %}"
        href="{% url 'core:diaperchange-list' %}"><i class="icon-diaperchange" aria-hidden="true"></i>
@@ -354,16 +359,17 @@
 </a>
 {% endif %}
 {% for plugin_nav_item in babybuddy_plugin_activity_nav_items %}
-<a class="dropdown-item" href="{% url plugin_nav_item.url_name %}">
-    <i class="{{ plugin_nav_item.icon }}" aria-hidden="true"></i>
-    {{ plugin_nav_item.label }}
-</a>
-{% if plugin_nav_item.add_url_name %}
-<a class="dropdown-item ps-5" href="{% url plugin_nav_item.add_url_name %}">
-    <i class="icon-add" aria-hidden="true"></i>
-    {{ plugin_nav_item.add_label }}
-</a>
-{% endif %}
+    <a class="dropdown-item" href="{% url plugin_nav_item.url_name %}">
+        <i class="{{ plugin_nav_item.icon }}" aria-hidden="true"></i>
+        {{ plugin_nav_item.label }}
+    </a>
+    {% if plugin_nav_item.add_url_name %}
+        <a class="dropdown-item ps-5"
+           href="{% url plugin_nav_item.add_url_name %}">
+            <i class="icon-add" aria-hidden="true"></i>
+            {{ plugin_nav_item.add_label }}
+        </a>
+    {% endif %}
 {% endfor %}
 </div>
 </li>
