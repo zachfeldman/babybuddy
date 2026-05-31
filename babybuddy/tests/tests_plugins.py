@@ -48,6 +48,7 @@ class PluginConfigDefaultsTestCase(TestCase):
         self.assertFalse(cfg.babybuddy_has_dashboard_card)
         self.assertFalse(cfg.babybuddy_has_api)
         self.assertIsNone(cfg.babybuddy_quick_entry_handler)
+        self.assertEqual(cfg.babybuddy_timer_activities, [])
 
     def test_is_subclass_of_appconfig(self):
         self.assertTrue(issubclass(BabyBuddyPluginConfig, AppConfig))
