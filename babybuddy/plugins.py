@@ -67,6 +67,9 @@ class BabyBuddyPluginConfig(AppConfig):
     babybuddy_nav_icon = "icon-note"  # CSS class from babybuddy icon font
     # Set to "activities" to nest under the Activities dropdown instead of top-level.
     babybuddy_nav_group = None
+    # If set, also adds this plugin to the Activities quick-add dropdown with this URL.
+    # Useful when nav_url_name points to the list and you want a separate add link.
+    babybuddy_activity_url_name = None
 
     # --- Dashboard ---
     # Set True and provide templates/<app_label>/cards/summary.html
@@ -122,6 +125,12 @@ def plugin_context(request):
                     activity_nav_items.append(item)
                 else:
                     nav_items.append(item)
+            if plugin.babybuddy_nav_label and plugin.babybuddy_activity_url_name:
+                activity_nav_items.append({
+                    "label": plugin.babybuddy_nav_label,
+                    "url_name": plugin.babybuddy_activity_url_name,
+                    "icon": plugin.babybuddy_nav_icon,
+                })
         except Exception as exc:
             logger.error(
                 "Plugin %r: failed to build nav item: %s", plugin.name, exc
