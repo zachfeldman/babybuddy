@@ -17,6 +17,7 @@ Example (removing the books plugin):
     python manage.py remove_plugin books
     pip uninstall django-babybuddy-books
 """
+
 import sys
 
 from django.core.management import call_command
@@ -47,7 +48,9 @@ class Command(BaseCommand):
         # Confirm the app is actually installed
         from django.apps import apps
 
-        if not apps.is_installed(app_label) and not self._has_migration_history(app_label):
+        if app_label not in apps.app_configs and not self._has_migration_history(
+            app_label
+        ):
             raise CommandError(
                 f"No app with label '{app_label}' is installed and no migration "
                 f"history found. Nothing to remove."
@@ -66,10 +69,12 @@ class Command(BaseCommand):
                 sys.exit(1)
 
         # Step 1: roll back all migrations (drops tables)
-        if apps.is_installed(app_label):
+        if app_label in apps.app_configs:
             self.stdout.write(f"Rolling back migrations for '{app_label}'...")
             try:
-                call_command("migrate", app_label, "zero", verbosity=1, interactive=False)
+                call_command(
+                    "migrate", app_label, "zero", verbosity=1, interactive=False
+                )
             except Exception as exc:
                 raise CommandError(f"Migration rollback failed: {exc}") from exc
         else:

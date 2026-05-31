@@ -89,7 +89,7 @@ class BabyBuddyPluginConfig(AppConfig):
     # --- Timer activities ---
     # List of dicts shown as buttons on the timer detail page.
     # Each dict: {"permission": "app.add_model", "url_name": "app:add", "label": "...", "icon": "icon-..."}
-    babybuddy_timer_activities = []
+    babybuddy_timer_activities = None
 
 
 def get_installed_plugins():
@@ -97,9 +97,7 @@ def get_installed_plugins():
     from django.apps import apps
 
     return [
-        cfg
-        for cfg in apps.get_app_configs()
-        if isinstance(cfg, BabyBuddyPluginConfig)
+        cfg for cfg in apps.get_app_configs() if isinstance(cfg, BabyBuddyPluginConfig)
     ]
 
 
@@ -124,20 +122,26 @@ def plugin_context(request):
                     "url_name": plugin.babybuddy_nav_url_name,
                     "icon": plugin.babybuddy_nav_icon,
                     "add_url_name": plugin.babybuddy_activity_url_name,
-                    "add_label": plugin.babybuddy_activity_label or plugin.babybuddy_nav_label,
+                    "add_label": plugin.babybuddy_activity_label
+                    or plugin.babybuddy_nav_label,
                 }
                 if plugin.babybuddy_nav_group == "activities":
                     activity_nav_items.append(item)
                 else:
                     nav_items.append(item)
         except Exception as exc:
-            logger.error(
-                "Plugin %r: failed to build nav item: %s", plugin.name, exc
-            )
+            logger.error("Plugin %r: failed to build nav item: %s", plugin.name, exc)
         try:
-            for activity in (plugin.babybuddy_timer_activities or []):
+            for activity in plugin.babybuddy_timer_activities or []:
                 perm = activity.get("permission")
-                if not perm or request.user.has_perm(perm):
+                if not perm:
+                    logger.warning(
+                        "Plugin %r: timer activity %r has no 'permission' key — skipped",
+                        plugin.name,
+                        activity.get("label"),
+                    )
+                    continue
+                if request.user.has_perm(perm):
                     timer_activities.append(activity)
         except Exception as exc:
             logger.error(

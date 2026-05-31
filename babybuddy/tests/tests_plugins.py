@@ -10,13 +10,17 @@ Covers:
 - plugin_cards templatetag (happy path + per-card failure isolation)
 - URL/API loading failure isolation
 """
+
 from unittest import mock
 
 from django.apps import AppConfig
 from django.test import RequestFactory, TestCase, override_settings
 
-from babybuddy.plugins import BabyBuddyPluginConfig, get_installed_plugins, plugin_context
-
+from babybuddy.plugins import (
+    BabyBuddyPluginConfig,
+    get_installed_plugins,
+    plugin_context,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -50,7 +54,7 @@ class PluginConfigDefaultsTestCase(TestCase):
         self.assertFalse(cfg.babybuddy_has_dashboard_card)
         self.assertFalse(cfg.babybuddy_has_api)
         self.assertIsNone(cfg.babybuddy_quick_entry_handler)
-        self.assertEqual(cfg.babybuddy_timer_activities, [])
+        self.assertIsNone(cfg.babybuddy_timer_activities)
 
     def test_is_subclass_of_appconfig(self):
         self.assertTrue(issubclass(BabyBuddyPluginConfig, AppConfig))
@@ -94,7 +98,9 @@ class PluginContextTestCase(TestCase):
             babybuddy_nav_url_name="books:book-list",
             babybuddy_nav_icon="icon-note",
         )
-        with mock.patch("babybuddy.plugins.get_installed_plugins", return_value=[plugin]):
+        with mock.patch(
+            "babybuddy.plugins.get_installed_plugins", return_value=[plugin]
+        ):
             ctx = plugin_context(self.request)
         self.assertEqual(len(ctx["babybuddy_plugin_nav_items"]), 1)
         item = ctx["babybuddy_plugin_nav_items"][0]
@@ -106,7 +112,9 @@ class PluginContextTestCase(TestCase):
             babybuddy_nav_label=None,
             babybuddy_nav_url_name="books:book-list",
         )
-        with mock.patch("babybuddy.plugins.get_installed_plugins", return_value=[plugin]):
+        with mock.patch(
+            "babybuddy.plugins.get_installed_plugins", return_value=[plugin]
+        ):
             ctx = plugin_context(self.request)
         self.assertEqual(ctx["babybuddy_plugin_nav_items"], [])
 
@@ -119,7 +127,9 @@ class PluginContextTestCase(TestCase):
             babybuddy_activity_url_name="books:reading-add",
             babybuddy_activity_label="Reading",
         )
-        with mock.patch("babybuddy.plugins.get_installed_plugins", return_value=[plugin]):
+        with mock.patch(
+            "babybuddy.plugins.get_installed_plugins", return_value=[plugin]
+        ):
             ctx = plugin_context(self.request)
         self.assertEqual(len(ctx["babybuddy_plugin_activity_nav_items"]), 1)
         item = ctx["babybuddy_plugin_activity_nav_items"][0]
@@ -134,7 +144,9 @@ class PluginContextTestCase(TestCase):
         type(bad_plugin).babybuddy_nav_label = mock.PropertyMock(
             side_effect=RuntimeError("plugin broken")
         )
-        with mock.patch("babybuddy.plugins.get_installed_plugins", return_value=[bad_plugin]):
+        with mock.patch(
+            "babybuddy.plugins.get_installed_plugins", return_value=[bad_plugin]
+        ):
             # Must not raise
             ctx = plugin_context(self.request)
         self.assertIn("babybuddy_plugin_nav_items", ctx)
@@ -154,9 +166,7 @@ class DiscoverPipPluginsTestCase(TestCase):
         return _discover_pip_plugins()
 
     def test_returns_list_when_no_entry_points(self):
-        with mock.patch(
-            "importlib.metadata.entry_points", return_value=[]
-        ):
+        with mock.patch("importlib.metadata.entry_points", return_value=[]):
             result = self._call()
         self.assertIsInstance(result, list)
         self.assertEqual(result, [])

@@ -55,6 +55,8 @@ def _discover_pip_plugins():
             try:
                 # Entry points use "module:Class" notation; Django
                 # INSTALLED_APPS expects "module.Class" (dots only).
+                if ep.value.count(":") != 1:
+                    continue
                 results.append(ep.value.replace(":", "."))
             except Exception as exc:
                 logger.error(
